@@ -3,7 +3,7 @@
     Setup file to make installing holoclean easier
 '''
 
-from setuptools import setup
+from setuptools import setup, find_packages
 
 with open("README.md", 'r') as f:
     long_description = f.read()
@@ -16,8 +16,10 @@ setup(
     author_email='contact@holoclean.io',
     license='Apache License 2.0',
     url='http://www.holoclean.io/',
-    packages=['holoclean'],
+    packages=find_packages(),
     install_requires=[
+        'toolz>=0.9.0',
+        'dask>=0.18.1',
         'ipython==5.6.0',
         'jupyter==1.0.0',
         'click==6.7 ',
