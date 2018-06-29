@@ -12,7 +12,7 @@ class DataEngine:
     to read the input files and output to Postgres database
     """
 
-    def __init__(self, holo_env):
+    def __init__(self, holo_env, use_dask):
         """
         The constructor for DataEngine class
 
@@ -25,13 +25,14 @@ class DataEngine:
         # Store holoclean environment
         self.holo_env = holo_env
 
-        # Init database backend
-        self.db_backend = self._start_db()
-        self.sparkSqlUrl = self._init_sparksql_url()
-        self.sql_ctxt = self.holo_env.spark_sql_ctxt
+        if not use_dask:
+            # Init database backend
+            self.db_backend = self._start_db()
+            self.sparkSqlUrl = self._init_sparksql_url()
+            self.sql_ctxt = self.holo_env.spark_sql_ctxt
 
-        # Init spark dataframe store
-        self.spark_dataframes = {}
+            # Init spark dataframe store
+            self.spark_dataframes = {}
 
         # Init Mappings
         self.attribute_map = {}
