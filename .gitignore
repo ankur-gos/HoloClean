@@ -1,4 +1,5 @@
-tutorials/.ipynb_checkpoints/
+tutorials/
+.ipynb_checkpoints/
 /.idea
 *.log
 __pycache__/
