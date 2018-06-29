@@ -18,8 +18,7 @@ setup(
     url='http://www.holoclean.io/',
     packages=find_packages(),
     install_requires=[
-        'toolz>=0.9.0',
-        'dask>=0.18.1',
+        'dask[dataframe]>=0.18.1',
         'ipython==5.6.0',
         'jupyter==1.0.0',
         'click==6.7 ',
@@ -32,8 +31,9 @@ setup(
         'torch==0.3.1',
         'torchvision==0.2.0',
         'tqdm==4.20.0',
-        'scipy==1.0.1',
-        'Pandas==0.20.3'
+        'scipy>=1.0.1',
+        'Pandas>=0.20.3',
+        'numpy>=1.14.4'
     ]
 )
 
