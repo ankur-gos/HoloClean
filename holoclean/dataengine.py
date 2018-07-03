@@ -12,7 +12,7 @@ class DataEngine:
     to read the input files and output to Postgres database
     """
 
-    def __init__(self, holo_env, use_dask):
+    def __init__(self, holo_env):
         """
         The constructor for DataEngine class
 
@@ -25,14 +25,13 @@ class DataEngine:
         # Store holoclean environment
         self.holo_env = holo_env
 
-        if not use_dask:
-            # Init database backend
-            self.db_backend = self._start_db()
-            self.sparkSqlUrl = self._init_sparksql_url()
-            self.sql_ctxt = self.holo_env.spark_sql_ctxt
+        # Init database backend
+        self.db_backend = self._start_db()
+        self.sparkSqlUrl = self._init_sparksql_url()
+        self.sql_ctxt = self.holo_env.spark_sql_ctxt
 
-            # Init spark dataframe store
-            self.spark_dataframes = {}
+        # Init spark dataframe store
+        self.spark_dataframes = {}
 
         # Init Mappings
         self.attribute_map = {}
@@ -168,45 +167,6 @@ class DataEngine:
             print "Could not execute Query ", sql_query, "Check log for info"
             exit(5)
 
-    def ingest_data_dask(self, filepath, dataset):
-        """
-        Load data from a file to a dataframe and store it on the db
-
-        filepath : String
-            File path of the .csv file for the dataset
-        dataset: DataSet
-            The DataSet object that holds the Session ID for HoloClean
-
-        """
-
-        # Spawn new reader and load data into dataframe
-        filereader = Reader(self.holo_env.spark_session)
-
-        # read with an index column
-        df = filereader.read(filepath,1)
-
-        # Store dataframe to DB table
-        schema = df.schema.names
-        name_table = dataset.table_specific_name('Init')
-        self.dataframe_to_table(name_table, df)
-        dataset.attributes['Init'] = schema
-        count = 0
-        map_schema = []
-        attribute_map = {}
-        for attribute in schema:
-            if attribute != GlobalVariables.index_name:
-                count = count + 1
-                map_schema.append([count, attribute])
-                attribute_map[attribute] = count
-
-        dataframe_map_schema = self.holo_env.spark_session.createDataFrame(
-            map_schema, dataset.attributes['Map_schema'])
-        self.add_db_table('Map_schema', dataframe_map_schema, dataset)
-
-        for table_tuple in map_schema:
-            self.attribute_map[table_tuple[1]] = table_tuple[0]
-
-        return df, attribute_map
     def ingest_data(self, filepath, dataset):
         """
         Load data from a file to a dataframe and store it on the db
@@ -244,6 +204,7 @@ class DataEngine:
 
         for table_tuple in map_schema:
             self.attribute_map[table_tuple[1]] = table_tuple[0]
+        import ipdb; ipdb.set_trace()
 
         return df, attribute_map
 
