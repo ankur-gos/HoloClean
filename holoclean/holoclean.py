@@ -30,7 +30,7 @@ arguments = [
     (('-D', '--dask'),
         {'metavar': 'USE_DASK',
          'dest': 'use_dask',
-         'default': True,
+         'default': False,
          'type': bool,
          'help': 'Choice to use Dask as backend.'}),
     (('-path', '--holoclean_path'),
