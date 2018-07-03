@@ -6,16 +6,8 @@ class ParserInterface:
     This class creates interface for parsing denial constraints
     """
 
-    def __init__(self, session):
-        """
-        Constructing parser interface object
-
-        :param session: session object
-        """
-        self.session = session
-        self.dataengine = session.holo_env.dataengine
-
-    def load_denial_constraints(self, file_path, all_current_dcs):
+    @staticmethod
+    def load_denial_constraints(self, file_path, all_current_dcs, attributes):
         """
         Loads denial constraints from line-separated txt file
 
@@ -33,11 +25,10 @@ class ParserInterface:
                 if line in all_current_dcs:
                     raise DCFormatException('DC already added')
                 denial_constraints_strings.append(line)
-                import ipdb; ipdb.set_trace()
                 denial_constraints[line] = \
                     (DenialConstraint(
                         line,
-                        self.session.dataset.attributes['Init']))
+                        attributes))
         return denial_constraints_strings, denial_constraints
 
 
