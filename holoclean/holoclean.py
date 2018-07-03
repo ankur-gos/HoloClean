@@ -298,7 +298,6 @@ class Session:
         self.cv = None
         self.pruning = None
         self.dataset = Dataset()
-        self.parser = ParserInterface(self)
         self.inferred_values = None
         self.feature_count = 0
         self.init_dataset = None
@@ -314,11 +313,11 @@ class Session:
         if self.holo_env.verbose:
             start = time.time()
         
-        if not self.use_dask:
-            init = None
-            self._ingest_dataset(file_path)
-            init = self.init_dataset
+        init = None
+        self._ingest_dataset(file_path)
+        init = self.init_dataset
 
+        if not self.use_dask:
             attributes = self.dataset.get_schema('Init')
             for attribute in attributes:
                 self.holo_env.dataengine.add_db_table_index(
@@ -338,8 +337,8 @@ class Session:
         :return: string array of dc's
         """
         new_denial_constraints, new_dc_objects = \
-            self.parser.load_denial_constraints(
-                file_path, self.Denial_constraints)
+            ParserInterface.load_denial_constraints(
+                file_path, self.Denial_constraints, self.init_dataset.columns.tolist())
         self.Denial_constraints.extend(new_denial_constraints)
         self.dc_objects.update(new_dc_objects)
         return self.Denial_constraints
@@ -533,26 +532,38 @@ class Session:
 
         :param src_path: string literal of path to the .csv file of the dataset
 
+        Side effects: this function sets self.init_dataset, self.attribute_map, and self.init_flat
+
+        It also initializes the following fields on the dataset object: attributesh
+
         :return: Null
         """
-        self.holo_env.logger.info('ingesting file:' + src_path)
-        self.init_dataset, self.attribute_map = \
-            self.holo_env.dataengine.ingest_data(src_path, self.dataset)
-        self.holo_env.logger.info(
-            'creating dataset with id:' +
-            self.dataset.print_id())
-        all_attr = self.dataset.get_schema('Init')
-        all_attr.remove(GlobalVariables.index_name)
-        number_of_tuples = len(self.init_dataset.collect())
-        tuples = [[i] for i in range(1, number_of_tuples + 1)]
-        attr = [[a] for a in all_attr]
+        if not self.use_dask:
+            self.holo_env.logger.info('ingesting file:' + src_path)
+            self.init_dataset, self.attribute_map = \
+                self.holo_env.dataengine.ingest_data(src_path, self.dataset)
+            self.holo_env.logger.info(
+                'creating dataset with id:' +
+                self.dataset.print_id())
+            all_attr = self.dataset.get_schema('Init')
+            all_attr.remove(GlobalVariables.index_name)
+            number_of_tuples = len(self.init_dataset.collect())
+            tuples = [[i] for i in range(1, number_of_tuples + 1)]
+            attr = [[a] for a in all_attr]
 
-        tuples_dataframe = self.holo_env.spark_session.createDataFrame(
-            tuples, ['ind'])
-        attr_dataframe = self.holo_env.spark_session.createDataFrame(
-            attr, ['attr'])
-        self.init_flat = tuples_dataframe.crossJoin(attr_dataframe)
-        import ipdb; ipdb.set_trace()
+            tuples_dataframe = self.holo_env.spark_session.createDataFrame(
+                tuples, ['ind'])
+            attr_dataframe = self.holo_env.spark_session.createDataFrame(
+                attr, ['attr'])
+            self.init_flat = tuples_dataframe.crossJoin(attr_dataframe)
+        else:
+            self.init_dataset = dd.read_csv(src_path)
+            cols = self.init_dataset.columns.tolist()
+            print cols
+            inds = [i for i in range(len(cols))]
+            self.attribute_map = dict(zip(inds, cols))
+            print self.attribute_map
+
         return
 
     def _add_featurizer(self, new_featurizer):
