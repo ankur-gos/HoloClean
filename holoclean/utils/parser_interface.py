@@ -33,6 +33,7 @@ class ParserInterface:
                 if line in all_current_dcs:
                     raise DCFormatException('DC already added')
                 denial_constraints_strings.append(line)
+                import ipdb; ipdb.set_trace()
                 denial_constraints[line] = \
                     (DenialConstraint(
                         line,

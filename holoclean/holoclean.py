@@ -6,6 +6,7 @@ from pyspark import SparkContext, SparkConf
 from pyspark.sql import SQLContext
 import time
 
+import dask.dataframe as dd
 import torch.nn.functional as F
 import torch
 from dataengine import DataEngine
@@ -26,6 +27,12 @@ from learning.accuracy import Accuracy
 
 # Defining arguments for HoloClean
 arguments = [
+    (('-D', '--dask'),
+        {'metavar': 'USE_DASK',
+         'dest': 'use_dask',
+         'default': False,
+         'type': bool,
+         'help': 'Choice to use Dask as backend.'}),
     (('-path', '--holoclean_path'),
         {'metavar': 'HOLOCLEAN_PATH',
          'dest': 'holoclean_path',
@@ -169,7 +176,7 @@ flags = [
 class HoloClean:
     """
     Main entry point for HoloClean which creates a HoloClean Data Engine
-    and initializes Spark.
+    and initializes Spark or Dask.
     """
 
     def __init__(self, **kwargs):
@@ -208,20 +215,22 @@ class HoloClean:
         self.logger = logging.getLogger("__main__")
         # Initialize dataengine and spark session
 
-        self.spark_session, self.spark_sql_ctxt = self._init_spark()
-        self.dataengine = self._init_dataengine()
+        if not self.use_dask:
+            self.spark_session, self.spark_sql_ctxt = self._init_spark()
+        self.dataengine = self._init_dataengine(self.use_dask)
+        print "Using Dask"
 
         # Init empty session collection
         self.session = {}
 
     # Internal methods
-    def _init_dataengine(self):
+    def _init_dataengine(self, use_dask):
         """
         Creates dataengine object
 
         :return: dataengine
         """
-        data_engine = DataEngine(self)
+        data_engine = DataEngine(self, use_dask)
         return data_engine
 
     def _init_spark(self):
@@ -299,14 +308,17 @@ class Session:
 
         :param file_path: path to data file
 
-        :return: pyspark dataframe
+        :return: pyspark dataframe or dask dataframe
         """
         if self.holo_env.verbose:
             start = time.time()
 
-        self._ingest_dataset(file_path)
-
-        init = self.init_dataset
+        init = None
+        if not self.holo_env.use_dask:
+            self._ingest_dataset(file_path)
+            init = self.init_dataset
+        else:
+            init = dd.read_csv(file_path)
 
         if self.holo_env.verbose:
             end = time.time()
