@@ -217,20 +217,19 @@ class HoloClean:
 
         if not self.use_dask:
             self.spark_session, self.spark_sql_ctxt = self._init_spark()
-        self.dataengine = self._init_dataengine(self.use_dask)
-        print "Using Dask"
+            self.dataengine = self._init_dataengine()
 
         # Init empty session collection
         self.session = {}
 
     # Internal methods
-    def _init_dataengine(self, use_dask):
+    def _init_dataengine(self):
         """
         Creates dataengine object
 
         :return: dataengine
         """
-        data_engine = DataEngine(self, use_dask)
+        data_engine = DataEngine(self)
         return data_engine
 
     def _init_spark(self):
@@ -291,6 +290,7 @@ class Session:
         # Initialize members
         self.name = name
         self.holo_env = holo_env
+        self.use_dask = holo_env.use_dask
         self.Denial_constraints = []  # Denial Constraint strings
         self.dc_objects = {}  # Denial Constraint Objects
         self.featurizers = []
@@ -301,6 +301,7 @@ class Session:
         self.parser = ParserInterface(self)
         self.inferred_values = None
         self.feature_count = 0
+        self.init_dataset = None
 
     def load_data(self, file_path):
         """
@@ -312,23 +313,21 @@ class Session:
         """
         if self.holo_env.verbose:
             start = time.time()
-
-        init = None
-        if not self.holo_env.use_dask:
+        
+        if not self.use_dask:
+            init = None
             self._ingest_dataset(file_path)
             init = self.init_dataset
-        else:
-            init = dd.read_csv(file_path)
+
+            attributes = self.dataset.get_schema('Init')
+            for attribute in attributes:
+                self.holo_env.dataengine.add_db_table_index(
+                    self.dataset.table_specific_name('Init'), attribute)
 
         if self.holo_env.verbose:
             end = time.time()
             log = 'Time to Load Data: ' + str(end - start) + '\n'
             print(log)
-        attributes = self.dataset.get_schema('Init')
-        for attribute in attributes:
-            self.holo_env.dataengine.add_db_table_index(
-                self.dataset.table_specific_name('Init'), attribute)
-        return init
 
     def load_denial_constraints(self, file_path):
         """
@@ -553,6 +552,7 @@ class Session:
         attr_dataframe = self.holo_env.spark_session.createDataFrame(
             attr, ['attr'])
         self.init_flat = tuples_dataframe.crossJoin(attr_dataframe)
+        import ipdb; ipdb.set_trace()
         return
 
     def _add_featurizer(self, new_featurizer):
